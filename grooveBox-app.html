@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>GrooveBox</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmidgen/0.1.5/jsmidgen.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box }
+        body { font-family: system-ui; background: #f5f5f5; padding: 20px }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+            padding: 24px
+        }
+        .header {
+            display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; border-bottom: 1px solid #eee; padding-bottom: 16px
+        }
+        .bpm-section {
+            display: flex; flex-direction: column; gap: 4px
+        }
+        .bpm-label {
+            font-size: 11px;
+            color: #999; text-transform: uppercase; font-weight: 600
+        }
+        .bpm-display { font-size: 36px; font-weight: 600 }
+        .beat-indicator { display: flex; gap: 6px }
+        .beat-dot {
+            width: 10px; height: 10px; border-radius: 50%; background: #ddd;
+            transition: .1s
+        }
+        .beat-dot.active {
+            background: #007AFF; box-shadow: 0 0 8px rgba(0,122,255,.5)
+        }
+        .controls { display: flex; gap: 8px; flex-wrap: wrap }
+        button { padding: 10px 18px; border: 1px solid #ddd; border-radius: 8px; background: white; color: #333; cursor: pointer; font-weight: 500; transition: .2s; font-size: 14px }
+        button:hover { background: #f8f8f8; border-color: #999 }
+        button.active { background: #007AFF; color: white; border-color: #007AFF }
+        .sequencer-grid { display: grid; grid-template-columns: 110px repeat(16,1fr); gap: 4px; margin: 24px 0; overflow-x: auto; padding: 12px; background: #f9f9f9; border-radius: 8px }
+        .sequencer-pad-label {
+            font-size: 11px;
+            color: #666; font-weight: 600; padding: 8px 4px; text-align: center; text-transform: uppercase
+        }
+        .step-button {
+            aspect-ratio: 1;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            transition: .1s;
+            min-width: 28px
+        }
+        .step-button:hover {
+            border-color: #999; background: #f8f8f8
+        }
+        .step-button.active {
+            background: #007AFF; border-color: #007AFF
+        }
+        .control-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 24px
+        }
+        .panel {
+            background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 16px
+        }
+        .panel-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px
+        }
+        .control-row {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 13px
+        }
+        .control-row:last-child {
+            margin-bottom: 0
+        }
+        .control-label {
+            color: #666; flex: 0 0 80px; font-weight: 500
+        }
+        .control-value {
+            color: #000; font-weight: 600; min-width: 45px; text-align: right
+        }
+        input[type="range"] {
+            flex: 1; height: 4px; background: #ddd; border-radius: 2px; outline: 0; -webkit-appearance: none
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #007AFF; cursor: pointer; border: 1px solid #005ACD
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px; height: 16px; border-radius: 50%;
+            background: #007AFF; cursor: pointer; border: 1px solid #005ACD
+        }
+        select {
+            padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; font-size: 13px; cursor: pointer; flex: 1
+        }
+        .preset-buttons { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; max-height: 300px; overflow-y: auto }
+        .preset-btn {
+            padding: 12px; background: white; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 12px; text-align: left
+        }
+        .preset-btn:hover {
+            background: #f0f7ff; border-color: #007AFF
+        }
+        .preset-name { font-weight: 600; margin-bottom: 4px }
+        .effect-toggle { display: flex; align-items: center; gap: 8px; padding: 10px; background: white; border-radius: 6px; border: 1px solid #ddd; margin-bottom: 8px }
+        .effect-toggle input {
+            cursor: pointer; width: 16px; height: 16px
+        }
+        .effect-toggle label {
+            cursor: pointer; flex: 1; margin: 0; font-weight: 500
+        }
+        .export-buttons {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px
+        }
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px
+        }
+        .subtitle {
+            font-size: 13px;
+            color: #666
+        }
+        @media (max-width:768px) { .sequencer-grid { grid-template-columns: 80px repeat(8,1fr) } .control-grid { grid-template-columns: 1fr } }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="title">GrooveBox</div>
+                <div class="subtitle">Professional Drum Sequencer</div>
+            </div>
+            <div class="bpm-section">
+                <div class="bpm-label">Tempo</div>
+                <div class="bpm-display" id="bpmDisplay">60</div>
+            </div>
+            <div class="beat-indicator" id="beatIndicator">
+                <div class="beat-dot active"></div>
+                <div class="beat-dot"></div>
+                <div class="beat-dot"></div>
+                <div class="beat-dot"></div>
+            </div>
+            <div class="controls">
+                <button id="playBtn">&#9654; Play</button>
+                <button id="stopBtn">&#9724; Stop</button>
+                <button id="quantizeBtn">&#8862; Quantize</button>
+            </div>
+        </div>
+        <div style="margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span style="font-size:12px;color:#666">40</span>
+                <input type="range" id="tempoSlider" min="40" max="200" value="60" style="flex:1">
+                <span style="font-size:12px;color:#666">200</span>
+                <input type="number" id="bpmInput" min="40" max="200" value="60" style="width:60px">
+            </div>
+            <div style="font-size:13px;color:#666"><strong id="statusText">Ready</strong> &bull; Beat <strong id="beatText">1</strong>/4 &bull; Steps: <strong id="stepCount">0</strong></div>
+        </div>
+        <div style="overflow-x:auto">
+            <div class="sequencer-grid" id="sequencerGrid"></div>
+        </div>
+        <div class="control-grid">
+            <div class="panel">
+                <div class="panel-title">Patterns</div>
+                <div class="preset-buttons" id="presetsContainer"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Groove</div>
+                <div class="control-row">
+                    <label class="control-label">Swing</label>
+                    <input type="range" id="swingSlider" min="0" max="50" value="0" style="flex:1">
+                    <div class="control-value" id="swingValue">0%</div>
+                </div>
+                <div class="control-row">
+                    <label class="control-label">Humanize</label>
+                    <input type="range" id="humanizeSlider" min="0" max="50" value="0" style="flex:1">
+                    <div class="control-value" id="humanizeValue">0%</div>
+                </div>
+                <div class="control-row">
+                    <label class="control-label">Volume</label>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="50" style="flex:1">
+                    <div class="control-value" id="volumeValue">50%</div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Effects</div>
+                <div class="effect-toggle">
+                    <input type="checkbox" id="reverbToggle">
+                    <label for="reverbToggle">Reverb</label>
+                    <input type="range" id="reverbAmount" min="0" max="100" value="30" style="width:80px">
+                </div>
+                <div class="effect-toggle">
+                    <input type="checkbox" id="delayToggle">
+                    <label for="delayToggle">Delay</label>
+                    <input type="range" id="delayAmount" min="0" max="100" value="30" style="width:80px">
+                </div>
+                <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee">
+                    <label style="font-size:12px;color:#666;display:block;margin-bottom:6px;font-weight:600">Quantize Grid</label>
+                    <select id="quantizeGrid" style="width:100%">
+                        <option value="16">1/16 Note</option>
+                        <option value="8">1/8 Note</option>
+                        <option value="4">1/4 Note</option>
+                        <option value="2">1/2 Note</option>
+                    </select>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-title">Master Export</div>
+                <div class="export-buttons">
+                    <button id="exportBtn">&#11015; Export MIDI</button>
+                    <button id="clearBtn">&#128465; Clear All</button>
+                    <button id="randomBtn">&#127922; Randomize</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ctx = new (window.AudioContext || webkitAudioContext)(), mg = ctx.createGain(), dg = ctx.createGain(), wg = ctx.createGain(), conv = ctx.createConvolver(), del = ctx.createDelay(), dfb = ctx.createGain(), dwg = ctx.createGain();
+        dg.connect(mg), wg.connect(conv), conv.connect(mg), dwg.connect(del), del.connect(dfb), dfb.connect(del), del.connect(mg), mg.connect(ctx.destination);
+
+        const samples = ['kick', 'snare', 'hihat', 'tom', 'clap', 'perc', 'cymbal', 'cowbell'],
+            wf = {
+                kick: { f: 150, d: .3, t: 'sine' },
+                snare: { f: 200, d: .15, t: 'sine' },
+                hihat: { f: 10000, d: .08, t: 'square' },
+                tom: { f: 250, d: .15, t: 'sine' },
+                clap: { f: 800, d: .15, t: 'sine' },
+                perc: { f: 400, d: .12, t: 'sine' },
+                cymbal: { f: 12000, d: .2, t: 'square' },
+                cowbell: { f: 540, d: .1, t: 'sine' }
+            },
+            patterns = {
+                '4-floor': { name: '4-on-Floor', desc: 'Kick every beat', p: [[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]] },
+                house: { name: 'House', desc: 'Classic house', p: [[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],[0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]] },
+                techno: { name: 'Techno', desc: 'Driving beat', p: [[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],[0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1],[1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]] },
+                break: { name: 'Breakbeat', desc: 'Complex', p: [[1,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0],[0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,0],[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],[0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]] },
+                trap: { name: 'Trap', desc: 'Hip-hop', p: [[1,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0],[0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0],[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]] },
+                dnb: { name: 'D&B', desc: 'Fast', p: [[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],[0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]] }
+            };
+
+        let seq = Array(8).fill(0).map(() => Array(16).fill(0)), playing = false, beat = 0, bpm = 60, swing = 0, humanize = 0, vol = .5, qgrid = 16;
+
+        const play = s => {
+            const w = wf[s], now = ctx.currentTime, o = ctx.createOscillator(), e = ctx.createGain();
+            o.type = w.t, o.frequency.value = w.f, e.gain.setValueAtTime(vol, now), e.gain.exponentialRampToValueAtTime(.01, now + w.d), o.connect(e), e.connect(dg), e.connect(wg), o.start(now), o.stop(now + w.d)
+        };
+
+        const render = () => {
+            const g = document.getElementById('sequencerGrid');
+            g.innerHTML = '';
+            samples.forEach((s, r) => {
+                const l = document.createElement('div');
+                l.className = 'sequencer-pad-label', l.textContent = s.substring(0, 6).toUpperCase(), g.appendChild(l);
+                for (let c = 0; c < 16; c++) {
+                    const b = document.createElement('button');
+                    b.className = 'step-button', seq[r][c] && b.classList.add('active'), b.onclick = () => {
+                        seq[r][c] = 1 - seq[r][c], b.classList.toggle('active'), updateCount()
+                    }, g.appendChild(b)
+                }
+            })
+        };
+
+        const updateCount = () => {
+            document.getElementById('stepCount').textContent = seq.flat().filter(x => x).length
+        };
+
+        const renderPresets = () => {
+            document.getElementById('presetsContainer').innerHTML = Object.entries(patterns).map(([k, p]) => `<button class="preset-btn" onclick="loadPattern('${k}')"><div class="preset-name">${p.name}</div><div style="font-size:11px;color:#999">${p.desc}</div></button>`).join('')
+        };
+
+        window.loadPattern = k => {
+            const p = patterns[k];
+            seq = p.p.map(r => [...r]), render(), updateCount()
+        };
+
+        const start = () => {
+            playing || (playing = true, beat = 0, document.getElementById('playBtn').classList.add('active'), document.getElementById('statusText').textContent = 'Playing', next())
+        };
+
+        const next = () => {
+            if (!playing) return;
+            samples.forEach((s, r) => {
+                seq[r][beat % 16] && play(s)
+            });
+            const bd = 60 / bpm * 1e3,
+                sw = beat % 2 === 1 ? swing / 100 * (bd / 2) : 0,
+                hu = (Math.random() - .5) * (humanize / 100) * bd;
+            beat++, document.getElementById('beatText').textContent = beat % 4 + 1, setTimeout(next, bd + sw + hu)
+        };
+
+        const stop = () => {
+            playing = false, beat = 0, document.getElementById('playBtn').classList.remove('active'), document.getElementById('statusText').textContent = 'Stopped', document.getElementById('beatText').textContent = '1'
+        };
+
+        const exp = () => {
+            if (seq.flat().every(x => !x)) {
+                alert('Empty!');
+                return
+            }
+            const f = new Midi.File(),
+                t = new Midi.Track();
+            f.addTrack(t);
+            for (let s = 0; s < 16; s++) samples.forEach((x, r) => {
+                if (seq[r][s]) {
+                    const tick = Math.round(s * 480 / 4);
+                    t.addNote(0, 36 + r, tick, 240, 100)
+                }
+            });
+            const d = f.toBytes(),
+                b = new Blob([d], { type: 'audio/midi' }),
+                u = URL.createObjectURL(b),
+                l = document.createElement('a');
+            l.href = u, l.download = 'groovebox_' + Date.now() + '.mid', l.click(), URL.revokeObjectURL(u)
+        };
+
+        document.getElementById('playBtn').onclick = start;
+        document.getElementById('stopBtn').onclick = stop;
+        document.getElementById('tempoSlider').oninput = e => {
+            bpm = parseInt(e.target.value), document.getElementById('bpmDisplay').textContent = bpm, document.getElementById('bpmInput').value = bpm
+        };
+        document.getElementById('bpmInput').onchange = e => {
+            bpm = parseInt(e.target.value) || 60, document.getElementById('bpmDisplay').textContent = bpm, document.getElementById('tempoSlider').value = bpm
+        };
+        document.getElementById('swingSlider').oninput = e => {
+            swing = parseInt(e.target.value), document.getElementById('swingValue').textContent = swing + '%'
+        };
+        document.getElementById('humanizeSlider').oninput = e => {
+            humanize = parseInt(e.target.value), document.getElementById('humanizeValue').textContent = humanize + '%'
+        };
+        document.getElementById('volumeSlider').oninput = e => {
+            vol = parseInt(e.target.value) / 100, mg.gain.value = vol, document.getElementById('volumeValue').textContent = e.target.value + '%'
+        };
+        document.getElementById('reverbToggle').onchange = e => {
+            dg.gain.value = e.target.checked ? .7 : 1, wg.gain.value = e.target.checked ? .3 : 0
+        };
+        document.getElementById('delayToggle').onchange = e => {
+            dwg.gain.value = e.target.checked ? .3 : 0
+        };
+        document.getElementById('quantizeGrid').onchange = e => {
+            qgrid = parseInt(e.target.value)
+        };
+        document.getElementById('quantizeBtn').onclick = () => {
+            const gs = 16 / qgrid;
+            samples.forEach((_, r) => {
+                const nr = Array(16).fill(0);
+                seq[r].forEach((v, s) => {
+                    if (v) {
+                        const qs = Math.round(s / gs) * gs;
+                        qs < 16 && (nr[qs] = 1)
+                    }
+                });
+                seq[r] = nr
+            });
+            render(), updateCount()
+        };
+        document.getElementById('exportBtn').onclick = exp;
+        document.getElementById('clearBtn').onclick = () => {
+            confirm('Clear?') && (seq = Array(8).fill(0).map(() => Array(16).fill(0)), render(), updateCount())
+        };
+        document.getElementById('randomBtn').onclick = () => {
+            seq = Array(8).fill(0).map(() => Array(16).fill(0).map(() => Math.random() > .7 ? 1 : 0)), render(), updateCount()
+        };
+
+        mg.gain.value = vol, del.delayTime.value = .5, dfb.gain.value = .3, render(), renderPresets(), updateCount();
+    </script>
+</body>
+
+</html>
